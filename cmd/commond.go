@@ -241,7 +241,7 @@ func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engi
 
 func setAndroid(title string) (charts.Line, *entity.EchartsData, chan *sentity.PerfmonData) {
 	line := getLineTemplate(title)
-	line.AddJSFuncs(registerJs(refreshTime, line.ChartID))
+	line.AddJSFuncs(registerJs(androidOptions.RefreshTime, line.ChartID))
 	dataChan := make(chan *sentity.PerfmonData)
 	eData := &entity.EchartsData{
 		XAxis:  []string{},

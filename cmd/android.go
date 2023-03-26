@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	sasentity "github.com/SonicCloudOrg/sonic-android-supply/src/entity"
@@ -10,7 +9,6 @@ import (
 	"net/http"
 
 	"github.com/spf13/cobra"
-	"html/template"
 )
 
 var androidCmd = &cobra.Command{
@@ -36,33 +34,11 @@ var androidCmd = &cobra.Command{
 	},
 }
 
-func test(Interval int, chartID string) string {
-	tpl, err := template.New("view").Parse(JsTpl)
-	if err != nil {
-		panic("statsview: failed to parse template " + err.Error())
-	}
-	var c = struct {
-		Interval int
-		ViewID   string
-	}{
-		Interval: Interval,
-		ViewID:   chartID,
-	}
-
-	buf := bytes.Buffer{}
-	if err := tpl.Execute(&buf, c); err != nil {
-		panic("statsview: failed to execute template " + err.Error())
-	}
-
-	return buf.String()
-}
-
 var (
 	addr               string
 	pid                int
 	androidSerial      string
 	androidPackageName string
-	refreshTime        int
 	androidOptions     sasentity.PerfOption
 )
 
@@ -77,7 +53,7 @@ func init() {
 	androidCmd.Flags().BoolVar(&androidOptions.SystemNetWorking, "sys-network", false, "get system networking data")
 	androidCmd.Flags().BoolVar(&androidOptions.ProcFPS, "proc-fps", false, "get fps data")
 	androidCmd.Flags().BoolVar(&androidOptions.ProcThreads, "proc-threads", false, "get process threads")
-	androidCmd.Flags().IntVarP(&refreshTime, "refresh", "r", 1000, "data refresh time (millisecond)")
+	androidCmd.Flags().IntVarP(&androidOptions.RefreshTime, "refresh", "r", 1000, "data refresh time (millisecond)")
 	androidCmd.Flags().BoolVar(&androidOptions.ProcCPU, "proc-cpu", false, "get process cpu data")
 	androidCmd.Flags().BoolVar(&androidOptions.ProcMem, "proc-mem", false, "get process mem data")
 }
