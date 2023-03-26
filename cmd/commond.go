@@ -76,32 +76,33 @@ func setPageInit(addr string, page *components.Page) {
 	page.JSAssets.Add("jquery.min.js")
 }
 
-func androidInit() (d adb.Device, pidStr string) {
+func androidInit() (d adb.Device) {
 	var err error
 	device := sasutil.GetDevice(androidSerial)
 
 	if pid == -1 && androidPackageName != "" {
-		pidStr, err = sasp.GetPidOnPackageName(device, androidPackageName)
+		sasp.PackageName = androidPackageName
+		sasp.Pid, err = sasp.GetPidOnPackageName(device, androidPackageName)
 		if err != nil {
 			fmt.Println("no corresponding application PID found")
 			os.Exit(0)
 		}
 	} else if pid != -1 && androidPackageName == "" {
-		pidStr = fmt.Sprintf("%d", pid)
-		androidPackageName, err = sasp.GetNameOnPid(device, pidStr)
+		sasp.Pid = fmt.Sprintf("%d", pid)
+		sasp.PackageName, err = sasp.GetNameOnPid(device, sasp.Pid)
 		if err != nil {
 			androidPackageName = ""
 		}
 	}
 
-	if (pidStr == "" && androidPackageName == "") &&
+	if (sasp.Pid == "" && androidPackageName == "") &&
 		!androidOptions.SystemCPU &&
 		!androidOptions.SystemGPU &&
 		!androidOptions.SystemNetWorking &&
 		!androidOptions.SystemMem {
 		androidParamsSet()
 	}
-	if (pidStr != "" || androidPackageName != "") &&
+	if (sasp.Pid != "" || androidPackageName != "") &&
 		!androidOptions.ProcMem &&
 		!androidOptions.ProcCPU &&
 		!androidOptions.ProcThreads &&
@@ -111,7 +112,7 @@ func androidInit() (d adb.Device, pidStr string) {
 		androidOptions.ProcThreads = true
 		androidOptions.ProcFPS = true
 	}
-	return *device, pidStr
+	return *device
 }
 
 func androidParamsSet() {
@@ -179,7 +180,7 @@ func getLineTemplate(title string) *charts.Line {
 	return line
 }
 
-func RegisterAndroidChart(device *adb.Device, page *components.Page, pidStr string, r *gin.Engine, exitCtx context.Context) {
+func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engine, exitCtx context.Context) {
 	if androidOptions.SystemCPU {
 		line, eData, dataChan := setAndroid("sys cpu info")
 		sasp.GetSystemCPU(device, androidOptions, dataChan, exitCtx)
@@ -201,6 +202,38 @@ func RegisterAndroidChart(device *adb.Device, page *components.Page, pidStr stri
 		sasp.GetSystemNetwork(device, androidOptions, dataChan, exitCtx)
 		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
 			androidDataConversion("sys networking info", dataChan, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if androidOptions.ProcCPU {
+		line, eData, dataChan := setAndroid("process cpu info")
+		sasp.GetProcCpu(device, androidOptions, dataChan, exitCtx)
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			androidDataConversion("process cpu info", dataChan, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if androidOptions.ProcMem {
+		line, eData, dataChan := setAndroid("process mem info")
+		sasp.GetProcMem(device, androidOptions, dataChan, exitCtx)
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			androidDataConversion("process mem info", dataChan, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if androidOptions.ProcFPS {
+		line, eData, dataChan := setAndroid("process FPS info")
+		sasp.GetProcFPS(device, androidOptions, dataChan, exitCtx)
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			androidDataConversion("process FPS info", dataChan, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if androidOptions.ProcThreads {
+		line, eData, dataChan := setAndroid("process Thread info")
+		sasp.GetProcThreads(device, androidOptions, dataChan, exitCtx)
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			androidDataConversion("process Thread info", dataChan, eData, c)
 		})
 		page.AddCharts(&line)
 	}
@@ -293,16 +326,40 @@ func androidDataConversion(title string, dataChan chan *sentity.PerfmonData, eDa
 		}
 	} else {
 		if data.Process.MemInfo != nil {
-
+			eData.XAxis = append(eData.XAxis, time.Unix(data.Process.MemInfo.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+			if eData.Series["pss"] == nil {
+				eData.Series["pss"] = []opts.LineData{}
+			}
+			if eData.Series["vss"] == nil {
+				eData.Series["vss"] = []opts.LineData{}
+			}
+			if eData.Series["rss"] == nil {
+				eData.Series["rss"] = []opts.LineData{}
+			}
+			eData.Series["pss"] = append(eData.Series["pss"], opts.LineData{Value: data.Process.MemInfo.TotalPSS})
+			eData.Series["vss"] = append(eData.Series["vss"], opts.LineData{Value: data.Process.MemInfo.VmSize})
+			eData.Series["rss"] = append(eData.Series["rss"], opts.LineData{Value: data.Process.MemInfo.PhyRSS})
 		}
 		if data.Process.CPUInfo != nil {
-
+			eData.XAxis = append(eData.XAxis, time.Unix(data.Process.CPUInfo.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+			if eData.Series["cpuUtilization"] == nil {
+				eData.Series["cpuUtilization"] = []opts.LineData{}
+			}
+			eData.Series["cpuUtilization"] = append(eData.Series["cpuUtilization"], opts.LineData{Value: data.Process.CPUInfo.CpuUtilization})
 		}
 		if data.Process.FPSInfo != nil {
-
+			eData.XAxis = append(eData.XAxis, time.Unix(data.Process.FPSInfo.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+			if eData.Series["FPS"] == nil {
+				eData.Series["FPS"] = []opts.LineData{}
+			}
+			eData.Series["FPS"] = append(eData.Series["FPS"], opts.LineData{Value: data.Process.FPSInfo.FPS})
 		}
 		if data.Process.ThreadInfo != nil {
-
+			eData.XAxis = append(eData.XAxis, time.Unix(data.Process.ThreadInfo.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+			if eData.Series["threadCount"] == nil {
+				eData.Series["threadCount"] = []opts.LineData{}
+			}
+			eData.Series["threadCount"] = append(eData.Series["threadCount"], opts.LineData{Value: data.Process.ThreadInfo.Threads})
 		}
 	}
 	for key, value := range eData.Series {

@@ -18,7 +18,7 @@ var androidCmd = &cobra.Command{
 	Short: "Get android device performance",
 	Long:  "Get android device performance",
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		device, pidStr := androidInit()
+		device := androidInit()
 		addr = "127.0.0.1:8081"
 		r := gin.Default()
 		r.Use(cors())
@@ -27,23 +27,11 @@ var androidCmd = &cobra.Command{
 		r.GET("/", func(c *gin.Context) {
 			page := components.NewPage()
 			setPageInit(addr, page)
-			RegisterAndroidChart(&device, page, pidStr, r, context.TODO())
+			RegisterAndroidChart(&device, page, r, context.TODO())
 			page.Render(c.Writer)
 		})
 		r.Run(fmt.Sprintf(addr))
 
-		//http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		//	page := components.NewPage()
-		//	page.Initialization.AssetsHost = "http://127.0.0.1:8081/statics/"
-		//	page.JSAssets.Add("jquery.min.js")
-		//	line := charts.NewLine()
-		//	line.AddJSFuncs(test(3*1000,line.ChartID))
-		//	page.AddCharts(line)
-		//	page.SetLayout(components.PageFlexLayout)
-		//	page.Render(writer)
-		//})
-		////http.HandleFunc("/test", httpserver)
-		//http.ListenAndServe(":8081", nil)
 		return nil
 	},
 }
