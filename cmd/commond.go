@@ -3,11 +3,13 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/SonicCloudOrg/sonic-android-supply/src/adb"
 	sentity "github.com/SonicCloudOrg/sonic-android-supply/src/entity"
 	sasp "github.com/SonicCloudOrg/sonic-android-supply/src/perfmonUtil"
 	sasutil "github.com/SonicCloudOrg/sonic-android-supply/src/util"
+	giDevice "github.com/SonicCloudOrg/sonic-gidevice"
 	"github.com/gin-gonic/gin"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
@@ -113,6 +115,53 @@ func androidInit() (d adb.Device) {
 		androidOptions.ProcFPS = true
 	}
 	return *device
+}
+
+func iOSInit() (d giDevice.Device) {
+	device := GetDeviceByUdId(iOSOptions.UDID)
+	if device == nil {
+		fmt.Println("device is not found")
+		os.Exit(0)
+	}
+
+	if (pid == -1 || iOSOptions.BundleID == "") && !iOSOptions.SystemCPU && !iOSOptions.SystemMem && !iOSOptions.SystemDisk && !iOSOptions.SystemNetWorking && !iOSOptions.SystemGPU && !iOSOptions.SystemFPS {
+		sysAllParamsSet()
+	}
+
+	if (pid != -1 || iOSOptions.BundleID != "") && !iOSOptions.SystemCPU && !iOSOptions.SystemMem && !iOSOptions.SystemDisk && !iOSOptions.SystemNetWorking && !iOSOptions.SystemGPU && !iOSOptions.SystemFPS && !iOSOptions.ProcNetwork && !iOSOptions.ProcMem && !iOSOptions.ProcCPU {
+		sysAllParamsSet()
+		iOSOptions.ProcNetwork = true
+		iOSOptions.ProcMem = true
+		iOSOptions.ProcCPU = true
+	}
+
+	if iOSOptions.ProcCPU {
+		addCpuAttr()
+	}
+
+	if iOSOptions.ProcMem {
+		addMemAttr()
+	}
+
+	perfOpts = []giDevice.PerfOption{
+		giDevice.WithPerfSystemCPU(iOSOptions.SystemCPU),
+		giDevice.WithPerfSystemMem(iOSOptions.SystemMem),
+		giDevice.WithPerfSystemDisk(iOSOptions.SystemDisk),
+		giDevice.WithPerfSystemNetwork(iOSOptions.SystemNetWorking),
+		giDevice.WithPerfNetwork(iOSOptions.ProcNetwork),
+		giDevice.WithPerfFPS(iOSOptions.SystemFPS),
+		giDevice.WithPerfGPU(iOSOptions.SystemGPU),
+		giDevice.WithPerfOutputInterval(iOSOptions.RefreshTime),
+	}
+
+	if pid != -1 {
+		perfOpts = append(perfOpts, giDevice.WithPerfPID(pid))
+		perfOpts = append(perfOpts, giDevice.WithPerfProcessAttributes(processAttributes...))
+	} else if iOSOptions.BundleID != "" {
+		perfOpts = append(perfOpts, giDevice.WithPerfBundleID(iOSOptions.BundleID))
+		perfOpts = append(perfOpts, giDevice.WithPerfProcessAttributes(processAttributes...))
+	}
+	return device
 }
 
 func androidParamsSet() {
@@ -369,6 +418,23 @@ func androidDataConversion(title string, dataChan chan *sentity.PerfmonData, eDa
 	c.Writer.Write([]byte(line.JSONNotEscaped()))
 }
 
+func iOSDataSplit(title string, data map[string]interface{}) {
+
+}
+
+type iOSDataChan struct {
+	SysChanCPU      chan map[string]interface{}
+	SysChanMem      chan map[string]interface{}
+	SysChanDisk     chan map[string]interface{}
+	SysChanNetwork  chan map[string]interface{}
+	ChanFPS         chan map[string]interface{}
+	ChanGPU         chan map[string]interface{}
+	ThreadsChan     chan map[string]interface{}
+	ProcChanCPU     chan map[string]interface{}
+	ProcChanMem     chan map[string]interface{}
+	ProcChanNetwork chan map[string]interface{}
+}
+
 func registerJs(Interval int, chartID string) string {
 	tpl, err := template.New("view").Parse(JsTpl)
 	if err != nil {
@@ -390,4 +456,37 @@ func registerJs(Interval int, chartID string) string {
 	}
 
 	return buf.String()
+}
+
+func GetDeviceByUdId(udId string) (device giDevice.Device) {
+	usbMuxClient, err := giDevice.NewUsbmux()
+	if err != nil {
+		panic(errors.New("unable to connect to usbmux"))
+		return nil
+	}
+	list, err1 := usbMuxClient.Devices()
+	if err1 != nil {
+		panic(errors.New("unable to get device list"))
+		return nil
+	}
+	if len(list) != 0 {
+		if len(udId) != 0 {
+			for i, d := range list {
+				if d.Properties().SerialNumber == udId {
+					device = list[i]
+					break
+				}
+			}
+		} else {
+			device = list[0]
+		}
+		if device == nil || device.Properties().SerialNumber == "" {
+			fmt.Println("device no found")
+			return nil
+		}
+	} else {
+		fmt.Println("no device connected")
+		return nil
+	}
+	return
 }
