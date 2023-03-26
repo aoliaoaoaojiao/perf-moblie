@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+	sasentity "github.com/SonicCloudOrg/sonic-android-supply/src/entity"
+	"github.com/gin-gonic/gin"
 	"github.com/go-echarts/go-echarts/v2/components"
-	"github.com/spf13/cobra"
 	"net/http"
-	"perf-moblie/entity"
+
+	"github.com/spf13/cobra"
+	"html/template"
 )
 
 var androidCmd = &cobra.Command{
@@ -13,56 +18,78 @@ var androidCmd = &cobra.Command{
 	Short: "Get android device performance",
 	Long:  "Get android device performance",
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		generateLineItems()
-		//go func() {
-		//	tickerTest()
-		//}()
-		js, data := RegisterChartsWS(1000, line.ChartID)
-		line.AddJSFuncs(js)
-		go func() {
-			tickerTest(data)
-		}()
-		RegisterJS()
-		http.HandleFunc("/", httpserver)
-		//http.HandleFunc("/test", httpserver)
-		http.ListenAndServe(":8081", nil)
+		device, pidStr := androidInit()
+		addr = "127.0.0.1:8081"
+		r := gin.Default()
+		r.Use(cors())
+		r.StaticFS("/statics", http.Dir("./statics"))
+		//r.StaticFS("/statics", http.Dir("./statics"))
+		r.GET("/", func(c *gin.Context) {
+			page := components.NewPage()
+			setPageInit(addr, page)
+			RegisterAndroidChart(&device, page, pidStr, r, context.TODO())
+			page.Render(c.Writer)
+		})
+		r.Run(fmt.Sprintf(addr))
+
+		//http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		//	page := components.NewPage()
+		//	page.Initialization.AssetsHost = "http://127.0.0.1:8081/statics/"
+		//	page.JSAssets.Add("jquery.min.js")
+		//	line := charts.NewLine()
+		//	line.AddJSFuncs(test(3*1000,line.ChartID))
+		//	page.AddCharts(line)
+		//	page.SetLayout(components.PageFlexLayout)
+		//	page.Render(writer)
+		//})
+		////http.HandleFunc("/test", httpserver)
+		//http.ListenAndServe(":8081", nil)
 		return nil
 	},
 }
 
-func httpserver(w http.ResponseWriter, r *http.Request) {
-	setCors(w, r)
-	page := components.NewPage()
-	page.Initialization.AssetsHost = fmt.Sprintf("http://%s/statics/", r.Host)
-	page.Assets.JSAssets.Add("jquery.min.js")
+func test(Interval int, chartID string) string {
+	tpl, err := template.New("view").Parse(JsTpl)
+	if err != nil {
+		panic("statsview: failed to parse template " + err.Error())
+	}
+	var c = struct {
+		Interval int
+		ViewID   string
+	}{
+		Interval: Interval,
+		ViewID:   chartID,
+	}
 
-	//lineMulti()
-	page.AddCharts(
-		line,
-		barBasic(),
-		barTitle(),
-		barSize(),
-	)
-	//line := lineDemo()
-	//line.Render(w)
+	buf := bytes.Buffer{}
+	if err := tpl.Execute(&buf, c); err != nil {
+		panic("statsview: failed to execute template " + err.Error())
+	}
 
-	page.Render(w)
+	return buf.String()
 }
 
-var options entity.Options
+var (
+	addr               string
+	pid                int
+	androidSerial      string
+	androidPackageName string
+	refreshTime        int
+	androidOptions     sasentity.PerfOption
+)
 
 func init() {
 	rootCmd.AddCommand(androidCmd)
-	androidCmd.Flags().StringVarP(&options.Serial, "serial", "s", "", "device serial (default first device)")
-	androidCmd.Flags().IntVarP(&options.Pid, "pid", "d", -1, "get PID data")
-	androidCmd.Flags().StringVarP(&options.PackageName, "package", "p", "", "app package name")
-	androidCmd.Flags().BoolVar(&options.SystemCPU, "sys-cpu", false, "get system cpu data")
-	androidCmd.Flags().BoolVar(&options.SystemMem, "sys-mem", false, "get system memory data")
+	androidCmd.Flags().StringVarP(&androidSerial, "androidSerial", "s", "", "device androidSerial (default first device)")
+	androidCmd.Flags().IntVarP(&pid, "pid", "d", -1, "get PID data")
+	androidCmd.Flags().StringVarP(&androidPackageName, "package", "p", "", "app package name")
+	androidCmd.Flags().BoolVar(&androidOptions.SystemCPU, "sys-cpu", false, "get system cpu data")
+	androidCmd.Flags().BoolVar(&androidOptions.SystemMem, "sys-mem", false, "get system memory data")
 
-	androidCmd.Flags().BoolVar(&options.SystemNetWorking, "sys-network", false, "get system networking data")
-	androidCmd.Flags().BoolVar(&options.ProcFPS, "proc-fps", false, "get fps data")
-	androidCmd.Flags().BoolVar(&options.ProcThreads, "proc-threads", false, "get process threads")
-
-	androidCmd.Flags().BoolVar(&options.ProcCPU, "proc-cpu", false, "get process cpu data")
-	androidCmd.Flags().BoolVar(&options.ProcMem, "proc-mem", false, "get process mem data")
+	androidCmd.Flags().BoolVar(&androidOptions.SystemNetWorking, "sys-network", false, "get system networking data")
+	androidCmd.Flags().BoolVar(&androidOptions.ProcFPS, "proc-fps", false, "get fps data")
+	androidCmd.Flags().BoolVar(&androidOptions.ProcThreads, "proc-threads", false, "get process threads")
+	androidCmd.Flags().IntVarP(&refreshTime, "refresh", "r", 1000, "data refresh time (millisecond)")
+	androidCmd.Flags().BoolVar(&androidOptions.ProcCPU, "proc-cpu", false, "get process cpu data")
+	androidCmd.Flags().BoolVar(&androidOptions.ProcMem, "proc-mem", false, "get process mem data")
 }
