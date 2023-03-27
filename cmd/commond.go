@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/SonicCloudOrg/sonic-android-supply/src/adb"
@@ -117,8 +118,11 @@ func androidInit() (d adb.Device) {
 	return *device
 }
 
-func iOSInit() (d giDevice.Device) {
+func iOSInit() (d giDevice.Device, perfData *iOSDataChan) {
 	device := GetDeviceByUdId(iOSOptions.UDID)
+	if perfData == nil {
+		perfData = &iOSDataChan{}
+	}
 	if device == nil {
 		fmt.Println("device is not found")
 		os.Exit(0)
@@ -143,6 +147,28 @@ func iOSInit() (d giDevice.Device) {
 		addMemAttr()
 	}
 
+	if iOSOptions.SystemCPU {
+		perfData.SysChanCPU = make(chan giDevice.SystemCPUData)
+	}
+	if iOSOptions.SystemMem {
+		perfData.SysChanMem = make(chan giDevice.SystemMemData)
+	}
+	if iOSOptions.SystemDisk {
+		perfData.SysChanDisk = make(chan giDevice.SystemDiskData)
+	}
+	if iOSOptions.SystemNetWorking {
+		perfData.SysChanNetwork = make(chan giDevice.SystemNetworkData)
+	}
+	if iOSOptions.SystemGPU {
+		perfData.ChanGPU = make(chan giDevice.GPUData)
+	}
+	if iOSOptions.SystemFPS {
+		perfData.ChanFPS = make(chan giDevice.FPSData)
+	}
+	if iOSOptions.ProcCPU || iOSOptions.ProcMem {
+		perfData.ProcChanProc = make(chan entity.IOSProcPerf)
+	}
+
 	perfOpts = []giDevice.PerfOption{
 		giDevice.WithPerfSystemCPU(iOSOptions.SystemCPU),
 		giDevice.WithPerfSystemMem(iOSOptions.SystemMem),
@@ -161,7 +187,7 @@ func iOSInit() (d giDevice.Device) {
 		perfOpts = append(perfOpts, giDevice.WithPerfBundleID(iOSOptions.BundleID))
 		perfOpts = append(perfOpts, giDevice.WithPerfProcessAttributes(processAttributes...))
 	}
-	return device
+	return device, perfData
 }
 
 func androidParamsSet() {
@@ -288,15 +314,290 @@ func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engi
 	}
 }
 
+func RegisterIOSChart(data <-chan []byte, iosChan *iOSDataChan, page *components.Page, r *gin.Engine, exitCtx context.Context) {
+	go func() {
+		for {
+			select {
+			case <-exitCtx.Done():
+				return
+			default:
+				d, _ := <-data
+				iOSDataSplit(d, iosChan)
+			}
+		}
+	}()
+	if iOSOptions.SystemCPU {
+		line, eData := setChart("sys cpu info")
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			conversionIOSSysCPU("sys cpu info", iosChan.SysChanCPU, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if iOSOptions.SystemMem {
+		line, eData := setChart("sys mem info")
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			conversionIOSSysMem("sys mem info", iosChan.SysChanMem, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if iOSOptions.SystemDisk {
+		line, eData := setChart("sys disk info")
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			conversionIOSSysDisk("sys disk info", iosChan.SysChanDisk, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if iOSOptions.SystemNetWorking {
+		line, eData := setChart("sys network info")
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			conversionIOSSysNetwork("sys network info", iosChan.SysChanNetwork, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if iOSOptions.SystemGPU {
+		line, eData := setChart("sys gpu info")
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			conversionIOSSysGPU("sys gpu info", iosChan.ChanGPU, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if iOSOptions.SystemFPS {
+		line, eData := setChart("sys fps info")
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			conversionIOSSysFPS("sys fps info", iosChan.ChanFPS, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if iOSOptions.ProcCPU {
+		line, eData := setChart("sys proc cpu info")
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			conversionIOSProcCPU("sys proc cpu info", iosChan.ProcChanProc, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+	if iOSOptions.ProcCPU {
+		line, eData := setChart("sys proc mem info")
+		r.GET(addr+"/"+line.ChartID, func(c *gin.Context) {
+			conversionIOSProcMem("sys proc mem info", iosChan.ProcChanProc, eData, c)
+		})
+		page.AddCharts(&line)
+	}
+}
+
+func conversionIOSSysCPU(title string, dataChan chan giDevice.SystemCPUData, eData *entity.EchartsData, c *gin.Context) {
+	data, _ := <-dataChan
+	line := getLineTemplate(title)
+	eData.XAxis = append(eData.XAxis, time.Unix(data.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+	if eData.Series["SystemLoad"] == nil {
+		eData.Series["SystemLoad"] = []opts.LineData{}
+	}
+	if eData.Series["NiceLoad"] == nil {
+		eData.Series["NiceLoad"] = []opts.LineData{}
+	}
+	if eData.Series["TotalLoad"] == nil {
+		eData.Series["TotalLoad"] = []opts.LineData{}
+	}
+	if eData.Series["UserLoad"] == nil {
+		eData.Series["UserLoad"] = []opts.LineData{}
+	}
+	eData.Series["SystemLoad"] = append(eData.Series["SystemLoad"], opts.LineData{Value: data.SystemLoad})
+	eData.Series["NiceLoad"] = append(eData.Series["NiceLoad"], opts.LineData{Value: data.NiceLoad})
+	eData.Series["TotalLoad"] = append(eData.Series["TotalLoad"], opts.LineData{Value: data.TotalLoad})
+	eData.Series["UserLoad"] = append(eData.Series["UserLoad"], opts.LineData{Value: data.UserLoad})
+	for key, value := range eData.Series {
+		line = line.SetXAxis(eData.XAxis).AddSeries(key, value)
+	}
+	line.Validate()
+	c.Writer.Write([]byte(line.JSONNotEscaped()))
+}
+
+func conversionIOSSysMem(title string, dataChan chan giDevice.SystemMemData, eData *entity.EchartsData, c *gin.Context) {
+	data, _ := <-dataChan
+	line := getLineTemplate(title)
+	eData.XAxis = append(eData.XAxis, time.Unix(data.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+	if eData.Series["AppMemory"] == nil {
+		eData.Series["AppMemory"] = []opts.LineData{}
+	}
+	if eData.Series["CachedFiles"] == nil {
+		eData.Series["CachedFiles"] = []opts.LineData{}
+	}
+	if eData.Series["Compressed"] == nil {
+		eData.Series["Compressed"] = []opts.LineData{}
+	}
+	if eData.Series["FreeMemory"] == nil {
+		eData.Series["FreeMemory"] = []opts.LineData{}
+	}
+	if eData.Series["SwapUsed"] == nil {
+		eData.Series["SwapUsed"] = []opts.LineData{}
+	}
+	if eData.Series["UsedMemory"] == nil {
+		eData.Series["UsedMemory"] = []opts.LineData{}
+	}
+	if eData.Series["WiredMemory"] == nil {
+		eData.Series["WiredMemory"] = []opts.LineData{}
+	}
+	eData.Series["AppMemory"] = append(eData.Series["AppMemory"], opts.LineData{Value: data.AppMemory})
+	eData.Series["CachedFiles"] = append(eData.Series["CachedFiles"], opts.LineData{Value: data.CachedFiles})
+	eData.Series["Compressed"] = append(eData.Series["Compressed"], opts.LineData{Value: data.Compressed})
+	eData.Series["FreeMemory"] = append(eData.Series["FreeMemory"], opts.LineData{Value: data.FreeMemory})
+	eData.Series["SwapUsed"] = append(eData.Series["SwapUsed"], opts.LineData{Value: data.SwapUsed})
+	eData.Series["UsedMemory"] = append(eData.Series["UsedMemory"], opts.LineData{Value: data.UsedMemory})
+	eData.Series["WiredMemory"] = append(eData.Series["WiredMemory"], opts.LineData{Value: data.WiredMemory})
+	for key, value := range eData.Series {
+		line = line.SetXAxis(eData.XAxis).AddSeries(key, value)
+	}
+	line.Validate()
+	c.Writer.Write([]byte(line.JSONNotEscaped()))
+}
+
+func conversionIOSSysDisk(title string, dataChan chan giDevice.SystemDiskData, eData *entity.EchartsData, c *gin.Context) {
+	data, _ := <-dataChan
+	line := getLineTemplate(title)
+	eData.XAxis = append(eData.XAxis, time.Unix(data.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+	if eData.Series["DataRead"] == nil {
+		eData.Series["DataRead"] = []opts.LineData{}
+	}
+	if eData.Series["DataWritten"] == nil {
+		eData.Series["DataWritten"] = []opts.LineData{}
+	}
+	if eData.Series["ReadOps"] == nil {
+		eData.Series["ReadOps"] = []opts.LineData{}
+	}
+	if eData.Series["WriteOps"] == nil {
+		eData.Series["WriteOps"] = []opts.LineData{}
+	}
+	eData.Series["DataRead"] = append(eData.Series["DataRead"], opts.LineData{Value: data.DataRead})
+	eData.Series["DataWritten"] = append(eData.Series["DataWritten"], opts.LineData{Value: data.DataWritten})
+	eData.Series["ReadOps"] = append(eData.Series["ReadOps"], opts.LineData{Value: data.ReadOps})
+	eData.Series["WriteOps"] = append(eData.Series["WriteOps"], opts.LineData{Value: data.WriteOps})
+	for key, value := range eData.Series {
+		line = line.SetXAxis(eData.XAxis).AddSeries(key, value)
+	}
+	line.Validate()
+	c.Writer.Write([]byte(line.JSONNotEscaped()))
+}
+
+func conversionIOSSysNetwork(title string, dataChan chan giDevice.SystemNetworkData, eData *entity.EchartsData, c *gin.Context) {
+	data, _ := <-dataChan
+	line := getLineTemplate(title)
+	eData.XAxis = append(eData.XAxis, time.Unix(data.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+	if eData.Series["BytesIn"] == nil {
+		eData.Series["BytesIn"] = []opts.LineData{}
+	}
+	if eData.Series["BytesOut"] == nil {
+		eData.Series["BytesOut"] = []opts.LineData{}
+	}
+	if eData.Series["PacketsIn"] == nil {
+		eData.Series["PacketsIn"] = []opts.LineData{}
+	}
+	if eData.Series["PacketsOut"] == nil {
+		eData.Series["PacketsOut"] = []opts.LineData{}
+	}
+	eData.Series["BytesIn"] = append(eData.Series["BytesIn"], opts.LineData{Value: data.BytesIn})
+	eData.Series["BytesOut"] = append(eData.Series["BytesOut"], opts.LineData{Value: data.BytesOut})
+	eData.Series["PacketsIn"] = append(eData.Series["PacketsIn"], opts.LineData{Value: data.PacketsIn})
+	eData.Series["PacketsOut"] = append(eData.Series["PacketsOut"], opts.LineData{Value: data.PacketsOut})
+	for key, value := range eData.Series {
+		line = line.SetXAxis(eData.XAxis).AddSeries(key, value)
+	}
+	line.Validate()
+	c.Writer.Write([]byte(line.JSONNotEscaped()))
+}
+
+func conversionIOSSysFPS(title string, dataChan chan giDevice.FPSData, eData *entity.EchartsData, c *gin.Context) {
+	data, _ := <-dataChan
+	line := getLineTemplate(title)
+	eData.XAxis = append(eData.XAxis, time.Unix(data.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+	if eData.Series["FPS"] == nil {
+		eData.Series["FPS"] = []opts.LineData{}
+	}
+	eData.Series["FPS"] = append(eData.Series["FPS"], opts.LineData{Value: data.FPS})
+	for key, value := range eData.Series {
+		line = line.SetXAxis(eData.XAxis).AddSeries(key, value)
+	}
+	line.Validate()
+	c.Writer.Write([]byte(line.JSONNotEscaped()))
+}
+
+func conversionIOSSysGPU(title string, dataChan chan giDevice.GPUData, eData *entity.EchartsData, c *gin.Context) {
+	data, _ := <-dataChan
+	line := getLineTemplate(title)
+	eData.XAxis = append(eData.XAxis, time.Unix(data.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+	if eData.Series["DeviceUtilization"] == nil {
+		eData.Series["DeviceUtilization"] = []opts.LineData{}
+	}
+	if eData.Series["RendererUtilization"] == nil {
+		eData.Series["RendererUtilization"] = []opts.LineData{}
+	}
+	if eData.Series["TilerUtilization"] == nil {
+		eData.Series["TilerUtilization"] = []opts.LineData{}
+	}
+	eData.Series["DeviceUtilization"] = append(eData.Series["DeviceUtilization"], opts.LineData{Value: data.DeviceUtilization})
+	eData.Series["RendererUtilization"] = append(eData.Series["RendererUtilization"], opts.LineData{Value: data.RendererUtilization})
+	eData.Series["TilerUtilization"] = append(eData.Series["TilerUtilization"], opts.LineData{Value: data.TilerUtilization})
+	for key, value := range eData.Series {
+		line = line.SetXAxis(eData.XAxis).AddSeries(key, value)
+	}
+	line.Validate()
+	c.Writer.Write([]byte(line.JSONNotEscaped()))
+}
+
+func conversionIOSProcCPU(title string, dataChan chan entity.IOSProcPerf, eData *entity.EchartsData, c *gin.Context) {
+	data, _ := <-dataChan
+	line := getLineTemplate(title)
+	eData.XAxis = append(eData.XAxis, time.Unix(data.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+	if eData.Series["CPUUsage"] == nil {
+		eData.Series["CPUUsage"] = []opts.LineData{}
+	}
+	eData.Series["CPUUsage"] = append(eData.Series["CPUUsage"], opts.LineData{Value: data.IOSProcPerf.CPUUsage})
+	for key, value := range eData.Series {
+		line = line.SetXAxis(eData.XAxis).AddSeries(key, value)
+	}
+	line.Validate()
+	c.Writer.Write([]byte(line.JSONNotEscaped()))
+}
+
+func conversionIOSProcMem(title string, dataChan chan entity.IOSProcPerf, eData *entity.EchartsData, c *gin.Context) {
+	data, _ := <-dataChan
+	line := getLineTemplate(title)
+	eData.XAxis = append(eData.XAxis, time.Unix(data.TimeStamp/1000, 0).Format("2006-01-02 15:04:05"))
+	if eData.Series["MemAnon"] == nil {
+		eData.Series["MemAnon"] = []opts.LineData{}
+	}
+	if eData.Series["MemResidentSize"] == nil {
+		eData.Series["MemResidentSize"] = []opts.LineData{}
+	}
+	if eData.Series["MemVirtualSize"] == nil {
+		eData.Series["MemVirtualSize"] = []opts.LineData{}
+	}
+	if eData.Series["PhysFootprint"] == nil {
+		eData.Series["PhysFootprint"] = []opts.LineData{}
+	}
+	eData.Series["MemAnon"] = append(eData.Series["MemAnon"], opts.LineData{Value: data.IOSProcPerf.MemAnon})
+	eData.Series["MemResidentSize"] = append(eData.Series["MemResidentSize"], opts.LineData{Value: data.IOSProcPerf.MemResidentSize})
+	eData.Series["MemVirtualSize"] = append(eData.Series["MemVirtualSize"], opts.LineData{Value: data.IOSProcPerf.MemVirtualSize})
+	eData.Series["PhysFootprint"] = append(eData.Series["PhysFootprint"], opts.LineData{Value: data.IOSProcPerf.PhysFootprint})
+	for key, value := range eData.Series {
+		line = line.SetXAxis(eData.XAxis).AddSeries(key, value)
+	}
+	line.Validate()
+	c.Writer.Write([]byte(line.JSONNotEscaped()))
+}
+
 func setAndroid(title string) (charts.Line, *entity.EchartsData, chan *sentity.PerfmonData) {
+	dataChan := make(chan *sentity.PerfmonData)
+	line, eData := setChart(title)
+	return line, eData, dataChan
+}
+
+func setChart(title string) (charts.Line, *entity.EchartsData) {
 	line := getLineTemplate(title)
 	line.AddJSFuncs(registerJs(androidOptions.RefreshTime, line.ChartID))
-	dataChan := make(chan *sentity.PerfmonData)
 	eData := &entity.EchartsData{
 		XAxis:  []string{},
 		Series: map[string][]opts.LineData{},
 	}
-	return *line, eData, dataChan
+	return *line, eData
 }
 
 func androidDataConversion(title string, dataChan chan *sentity.PerfmonData, eData *entity.EchartsData, c *gin.Context) {
@@ -418,21 +719,74 @@ func androidDataConversion(title string, dataChan chan *sentity.PerfmonData, eDa
 	c.Writer.Write([]byte(line.JSONNotEscaped()))
 }
 
-func iOSDataSplit(title string, data map[string]interface{}) {
-
+func iOSDataSplit(dataByte []byte, iosChan *iOSDataChan) {
+	dataMap := make(map[string]interface{})
+	err := json.Unmarshal(dataByte, &dataMap)
+	if err != nil {
+		panic(err)
+	}
+	dataType := dataMap["type"]
+	switch dataType {
+	case "sys_cpu":
+		data := giDevice.SystemCPUData{}
+		err = json.Unmarshal(dataByte, &data)
+		if err != nil {
+			panic(err)
+		}
+		iosChan.SysChanCPU <- data
+	case "sys_disk":
+		data := giDevice.SystemDiskData{}
+		err = json.Unmarshal(dataByte, &data)
+		if err != nil {
+			panic(err)
+		}
+		iosChan.SysChanDisk <- data
+	case "sys_mem":
+		data := giDevice.SystemMemData{}
+		err = json.Unmarshal(dataByte, &data)
+		if err != nil {
+			panic(err)
+		}
+		iosChan.SysChanMem <- data
+	case "sys_network":
+		data := giDevice.SystemNetworkData{}
+		err = json.Unmarshal(dataByte, &data)
+		if err != nil {
+			panic(err)
+		}
+		iosChan.SysChanNetwork <- data
+	case "gpu":
+		data := giDevice.GPUData{}
+		err = json.Unmarshal(dataByte, &data)
+		if err != nil {
+			panic(err)
+		}
+		iosChan.ChanGPU <- data
+	case "fps":
+		data := giDevice.FPSData{}
+		err = json.Unmarshal(dataByte, &data)
+		if err != nil {
+			panic(err)
+		}
+		iosChan.ChanFPS <- data
+	case "process":
+		data := entity.IOSProcPerf{}
+		err = json.Unmarshal(dataByte, &data)
+		if err != nil {
+			panic(err)
+		}
+		iosChan.ProcChanProc <- data
+	}
 }
 
 type iOSDataChan struct {
-	SysChanCPU      chan map[string]interface{}
-	SysChanMem      chan map[string]interface{}
-	SysChanDisk     chan map[string]interface{}
-	SysChanNetwork  chan map[string]interface{}
-	ChanFPS         chan map[string]interface{}
-	ChanGPU         chan map[string]interface{}
-	ThreadsChan     chan map[string]interface{}
-	ProcChanCPU     chan map[string]interface{}
-	ProcChanMem     chan map[string]interface{}
-	ProcChanNetwork chan map[string]interface{}
+	SysChanCPU     chan giDevice.SystemCPUData
+	SysChanMem     chan giDevice.SystemMemData
+	SysChanDisk    chan giDevice.SystemDiskData
+	SysChanNetwork chan giDevice.SystemNetworkData
+	ChanFPS        chan giDevice.FPSData
+	ChanGPU        chan giDevice.GPUData
+	ProcChanProc   chan entity.IOSProcPerf
 }
 
 func registerJs(Interval int, chartID string) string {
