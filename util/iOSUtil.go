@@ -70,7 +70,7 @@ func IOSInit(opts *entity.IOSOptions) (d giDevice.Device, perfData *entity.IOSDa
 		perfData.ProcChanProc = make(chan entity.IOSProcPerf)
 	}
 
-	perfOpts := []giDevice.PerfOption{
+	perfOpts = []giDevice.PerfOption{
 		giDevice.WithPerfSystemCPU(iOpts.SystemCPU),
 		giDevice.WithPerfSystemMem(iOpts.SystemMem),
 		giDevice.WithPerfSystemDisk(iOpts.SystemDisk),
