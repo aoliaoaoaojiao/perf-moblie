@@ -19,7 +19,7 @@ var androidCmd = &cobra.Command{
 	Long:  "Get android device performance",
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		device := util.AndroidInit(&aOpts)
-		addr := fmt.Sprintf("127.0.0.1:%d", port)
+		aOpts.Addr = fmt.Sprintf("127.0.0.1:%d", port)
 		r := gin.Default()
 		r.Use(util.Cors())
 		r.StaticFS("/statics", http.Dir("./statics"))
@@ -32,15 +32,13 @@ var androidCmd = &cobra.Command{
 			exitCancel()
 			os.Exit(0)
 		}()
-
+		page := components.NewPage()
+		util.SetPageInit(aOpts.Addr, page)
+		util.RegisterAndroidChart(&device, page, r, exitCtx)
 		r.GET("/", func(c *gin.Context) {
-			page := components.NewPage()
-			util.SetPageInit(addr, page)
-			util.RegisterAndroidChart(&device, page, r, exitCtx)
 			page.Render(c.Writer)
 		})
-
-		r.Run(fmt.Sprintf(addr))
+		r.Run(fmt.Sprintf(aOpts.Addr))
 
 		return nil
 	},

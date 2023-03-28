@@ -18,16 +18,15 @@ import (
 
 const (
 	JsTpl = `
-		$(function () { setInterval({{ .ViewID }}_sync, {{ .Interval }}); });
-		function {{ .ViewID }}_sync() {
-			$.ajax({
-				type: "GET",
-				url: "{{ .Addr }}",
-				dataType: "json",
-				success: function (result) {
-					goecharts_{{ .ViewID }}.setOption(result);
-				}
-			});
+		let conn_{{ .ViewID }} = new WebSocket("ws://{{ .Addr }}");
+		conn_{{ .ViewID }}.onclose = function(e) {
+			console.log(e);
+			console.log("connection closed");
+		};
+		conn_{{ .ViewID }}.onmessage = function(evt) {
+			let data = JSON.parse(evt.data);
+			goecharts_{{ .ViewID }}.setOption(data);
+			console.log('Received data:', data);
 		}
 `
 	BaseTpl = `

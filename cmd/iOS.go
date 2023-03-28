@@ -19,7 +19,7 @@ var iOSCmd = &cobra.Command{
 	Long:  "Get iOS device performance",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		device, iOSChanPerf, perfOpts := util.IOSInit(&iOpts)
-		addr := fmt.Sprintf("127.0.0.1:%d", port)
+		iOpts.Addr = fmt.Sprintf("127.0.0.1:%d", port)
 		r := gin.Default()
 		r.Use(util.Cors())
 		r.StaticFS("/statics", http.Dir("./statics"))
@@ -38,14 +38,13 @@ var iOSCmd = &cobra.Command{
 			exitCancel()
 			os.Exit(0)
 		}()
-
+		page := components.NewPage()
+		util.SetPageInit(iOpts.Addr, page)
+		util.RegisterIOSChart(data, iOSChanPerf, page, r, exitCtx)
 		r.GET("/", func(c *gin.Context) {
-			page := components.NewPage()
-			util.SetPageInit(addr, page)
-			util.RegisterIOSChart(data, iOSChanPerf, page, r, exitCtx)
 			page.Render(c.Writer)
 		})
-		r.Run(fmt.Sprintf(addr))
+		r.Run(fmt.Sprintf(iOpts.Addr))
 
 		return nil
 	},

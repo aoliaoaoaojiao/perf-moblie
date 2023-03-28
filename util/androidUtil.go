@@ -67,18 +67,17 @@ func androidParamsSet() {
 	aOpts.AndroidOptions.SystemNetWorking = true
 }
 
-func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engine, exitCtx context.Context) {
+func RegisterAndroidRoute(device *adb.Device, page *components.Page, r *gin.Engine, exitCtx context.Context) {
 	if aOpts.AndroidOptions.SystemCPU {
-		fmt.Println(r.BasePath())
-		line, eData, dataChan := setAndroid("sys cpu info", r.BasePath())
-		sasp.GetSystemCPU(device, aOpts.AndroidOptions, dataChan, exitCtx)
-		r.GET("/"+line.ChartID, func(c *gin.Context) {
+		line, eData, dataChan := setAndroid("sys cpu info", aOpts.Addr+"/android/sys/cpu")
+		r.GET("/android/sys/cpu", func(c *gin.Context) {
+			sasp.GetSystemCPU(device, aOpts.AndroidOptions, dataChan, exitCtx)
 			androidSysCPU("sys cpu info", dataChan, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
 	if aOpts.AndroidOptions.SystemMem {
-		line, eData, dataChan := setAndroid("sys mem info", r.BasePath())
+		line, eData, dataChan := setAndroid("sys mem info", aOpts.Addr)
 		sasp.GetSystemMem(device, aOpts.AndroidOptions, dataChan, exitCtx)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			androidSysMem("sys mem info", dataChan, eData, c, exitCtx)
@@ -86,7 +85,7 @@ func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engi
 		page.AddCharts(&line)
 	}
 	if aOpts.AndroidOptions.SystemNetWorking {
-		line, eData, dataChan := setAndroid("sys networking info", r.BasePath())
+		line, eData, dataChan := setAndroid("sys networking info", aOpts.Addr)
 		sasp.GetSystemNetwork(device, aOpts.AndroidOptions, dataChan, exitCtx)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			androidSysNetwork("sys networking info", dataChan, eData, c, exitCtx)
@@ -94,7 +93,7 @@ func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engi
 		page.AddCharts(&line)
 	}
 	if aOpts.AndroidOptions.ProcCPU {
-		line, eData, dataChan := setAndroid("process cpu info", r.BasePath())
+		line, eData, dataChan := setAndroid("process cpu info", aOpts.Addr)
 		sasp.GetProcCpu(device, aOpts.AndroidOptions, dataChan, exitCtx)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			androidProcCPU("process cpu info", dataChan, eData, c, exitCtx)
@@ -102,7 +101,7 @@ func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engi
 		page.AddCharts(&line)
 	}
 	if aOpts.AndroidOptions.ProcMem {
-		line, eData, dataChan := setAndroid("process mem info", r.BasePath())
+		line, eData, dataChan := setAndroid("process mem info", aOpts.Addr)
 		sasp.GetProcMem(device, aOpts.AndroidOptions, dataChan, exitCtx)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			androidProcMem("process mem info", dataChan, eData, c, exitCtx)
@@ -110,7 +109,7 @@ func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engi
 		page.AddCharts(&line)
 	}
 	if aOpts.AndroidOptions.ProcFPS {
-		line, eData, dataChan := setAndroid("process FPS info", r.BasePath())
+		line, eData, dataChan := setAndroid("process FPS info", aOpts.Addr)
 		sasp.GetProcFPS(device, aOpts.AndroidOptions, dataChan, exitCtx)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			androidProcFPS("process FPS info", dataChan, eData, c, exitCtx)
@@ -118,7 +117,66 @@ func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engi
 		page.AddCharts(&line)
 	}
 	if aOpts.AndroidOptions.ProcThreads {
-		line, eData, dataChan := setAndroid("process Thread info", r.BasePath())
+		line, eData, dataChan := setAndroid("process Thread info", aOpts.Addr)
+		sasp.GetProcThreads(device, aOpts.AndroidOptions, dataChan, exitCtx)
+		r.GET("/"+line.ChartID, func(c *gin.Context) {
+			androidProcThreads("process Thread info", dataChan, eData, c, exitCtx)
+		})
+		page.AddCharts(&line)
+	}
+}
+
+func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engine, exitCtx context.Context) {
+	if aOpts.AndroidOptions.SystemCPU {
+		line, eData, dataChan := setAndroid("sys cpu info", aOpts.Addr)
+		sasp.GetSystemCPU(device, aOpts.AndroidOptions, dataChan, exitCtx)
+		r.GET("/"+line.ChartID, func(c *gin.Context) {
+			androidSysCPU("sys cpu info", dataChan, eData, c, exitCtx)
+		})
+		page.AddCharts(&line)
+	}
+	if aOpts.AndroidOptions.SystemMem {
+		line, eData, dataChan := setAndroid("sys mem info", aOpts.Addr)
+		sasp.GetSystemMem(device, aOpts.AndroidOptions, dataChan, exitCtx)
+		r.GET("/"+line.ChartID, func(c *gin.Context) {
+			androidSysMem("sys mem info", dataChan, eData, c, exitCtx)
+		})
+		page.AddCharts(&line)
+	}
+	if aOpts.AndroidOptions.SystemNetWorking {
+		line, eData, dataChan := setAndroid("sys networking info", aOpts.Addr)
+		sasp.GetSystemNetwork(device, aOpts.AndroidOptions, dataChan, exitCtx)
+		r.GET("/"+line.ChartID, func(c *gin.Context) {
+			androidSysNetwork("sys networking info", dataChan, eData, c, exitCtx)
+		})
+		page.AddCharts(&line)
+	}
+	if aOpts.AndroidOptions.ProcCPU {
+		line, eData, dataChan := setAndroid("process cpu info", aOpts.Addr)
+		sasp.GetProcCpu(device, aOpts.AndroidOptions, dataChan, exitCtx)
+		r.GET("/"+line.ChartID, func(c *gin.Context) {
+			androidProcCPU("process cpu info", dataChan, eData, c, exitCtx)
+		})
+		page.AddCharts(&line)
+	}
+	if aOpts.AndroidOptions.ProcMem {
+		line, eData, dataChan := setAndroid("process mem info", aOpts.Addr)
+		sasp.GetProcMem(device, aOpts.AndroidOptions, dataChan, exitCtx)
+		r.GET("/"+line.ChartID, func(c *gin.Context) {
+			androidProcMem("process mem info", dataChan, eData, c, exitCtx)
+		})
+		page.AddCharts(&line)
+	}
+	if aOpts.AndroidOptions.ProcFPS {
+		line, eData, dataChan := setAndroid("process FPS info", aOpts.Addr)
+		sasp.GetProcFPS(device, aOpts.AndroidOptions, dataChan, exitCtx)
+		r.GET("/"+line.ChartID, func(c *gin.Context) {
+			androidProcFPS("process FPS info", dataChan, eData, c, exitCtx)
+		})
+		page.AddCharts(&line)
+	}
+	if aOpts.AndroidOptions.ProcThreads {
+		line, eData, dataChan := setAndroid("process Thread info", aOpts.Addr)
 		sasp.GetProcThreads(device, aOpts.AndroidOptions, dataChan, exitCtx)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			androidProcThreads("process Thread info", dataChan, eData, c, exitCtx)

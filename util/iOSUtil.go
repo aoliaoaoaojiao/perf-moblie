@@ -137,56 +137,56 @@ func RegisterIOSChart(data <-chan []byte, iosChan *entity.IOSDataChan, page *com
 		}
 	}()
 	if iOpts.SystemCPU {
-		line, eData := setChart("sys cpu info", r.BasePath())
+		line, eData := setChart("sys cpu info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			conversionIOSSysCPU("sys cpu info", iosChan.SysChanCPU, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
 	if iOpts.SystemMem {
-		line, eData := setChart("sys mem info", r.BasePath())
+		line, eData := setChart("sys mem info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			conversionIOSSysMem("sys mem info", iosChan.SysChanMem, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
 	if iOpts.SystemDisk {
-		line, eData := setChart("sys disk info", r.BasePath())
+		line, eData := setChart("sys disk info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			conversionIOSSysDisk("sys disk info", iosChan.SysChanDisk, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
 	if iOpts.SystemNetWorking {
-		line, eData := setChart("sys network info", r.BasePath())
+		line, eData := setChart("sys network info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			conversionIOSSysNetwork("sys network info", iosChan.SysChanNetwork, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
 	if iOpts.SystemGPU {
-		line, eData := setChart("sys gpu info", r.BasePath())
+		line, eData := setChart("sys gpu info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			conversionIOSSysGPU("sys gpu info", iosChan.ChanGPU, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
 	if iOpts.SystemFPS {
-		line, eData := setChart("sys fps info", r.BasePath())
+		line, eData := setChart("sys fps info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			conversionIOSSysFPS("sys fps info", iosChan.ChanFPS, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
 	if iOpts.ProcCPU {
-		line, eData := setChart("sys proc cpu info", r.BasePath())
+		line, eData := setChart("sys proc cpu info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			conversionIOSProcCPU("sys proc cpu info", iosChan.ProcChanProc, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
 	if iOpts.ProcCPU {
-		line, eData := setChart("sys proc mem info", r.BasePath())
+		line, eData := setChart("sys proc mem info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
 			conversionIOSProcMem("sys proc mem info", iosChan.ProcChanProc, eData, c, exitCtx)
 		})

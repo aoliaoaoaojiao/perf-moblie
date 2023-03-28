@@ -3,6 +3,7 @@ package entity
 import sentity "github.com/SonicCloudOrg/sonic-android-supply/src/entity"
 
 type IOSOptions struct {
+	Addr              string
 	BundleID          string
 	UDID              string
 	Pid               int
