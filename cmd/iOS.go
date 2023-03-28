@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	giDevice "github.com/SonicCloudOrg/sonic-gidevice"
 	"github.com/gin-gonic/gin"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/spf13/cobra"
@@ -11,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"perf-moblie/entity"
+	"perf-moblie/util"
 )
 
 var iOSCmd = &cobra.Command{
@@ -18,10 +18,10 @@ var iOSCmd = &cobra.Command{
 	Short: "Get iOS device performance",
 	Long:  "Get iOS device performance",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		device, iOSChanPerf := iOSInit()
-		addr = fmt.Sprintf("127.0.0.1:%d", port)
+		device, iOSChanPerf, perfOpts := util.IOSInit(&iOpts)
+		addr := fmt.Sprintf("127.0.0.1:%d", port)
 		r := gin.Default()
-		r.Use(cors())
+		r.Use(util.Cors())
 		r.StaticFS("/statics", http.Dir("./statics"))
 		//r.StaticFS("/statics", http.Dir("./statics"))
 		data, err := device.PerfStart(perfOpts...)
@@ -36,12 +36,13 @@ var iOSCmd = &cobra.Command{
 		go func() {
 			<-done
 			exitCancel()
+			os.Exit(0)
 		}()
 
 		r.GET("/", func(c *gin.Context) {
 			page := components.NewPage()
-			setPageInit(addr, page)
-			RegisterIOSChart(data, iOSChanPerf, page, r, exitCtx)
+			util.SetPageInit(addr, page)
+			util.RegisterIOSChart(data, iOSChanPerf, page, r, exitCtx)
 			page.Render(c.Writer)
 		})
 		r.Run(fmt.Sprintf(addr))
@@ -50,41 +51,21 @@ var iOSCmd = &cobra.Command{
 	},
 }
 
-var (
-	processAttributes []string
-	iOSOptions        entity.Options
-	perfOpts          []giDevice.PerfOption
-	port              int
-)
-
-func addCpuAttr() {
-	processAttributes = append(processAttributes, "cpuUsage")
-}
-
-func addMemAttr() {
-	processAttributes = append(processAttributes, "memVirtualSize", "physFootprint", "memResidentSize", "memAnon")
-}
-
-func sysAllParamsSet() {
-	iOSOptions.SystemFPS = true
-	iOSOptions.SystemGPU = true
-	iOSOptions.SystemCPU = true
-	iOSOptions.SystemMem = true
-}
+var iOpts entity.IOSOptions
 
 func init() {
 	rootCmd.AddCommand(iOSCmd)
-	iOSCmd.Flags().IntVar(&port, "port", 8071, "service port")
-	iOSCmd.Flags().StringVarP(&iOSOptions.UDID, "udid", "u", "", "device's serialNumber ( default first device )")
-	iOSCmd.Flags().IntVarP(&iOSOptions.Pid, "pid", "p", -1, "get PID data")
-	iOSCmd.Flags().StringVarP(&iOSOptions.BundleID, "bundleId", "b", "", "target bundleId")
-	iOSCmd.Flags().BoolVar(&iOSOptions.SystemCPU, "sys-cpu", false, "get system cpu data")
-	iOSCmd.Flags().BoolVar(&iOSOptions.SystemMem, "sys-mem", false, "get system memory data")
-	iOSCmd.Flags().BoolVar(&iOSOptions.SystemDisk, "sys-disk", false, "get system disk data")
-	iOSCmd.Flags().BoolVar(&iOSOptions.SystemNetWorking, "sys-network", false, "get system networking data")
-	iOSCmd.Flags().BoolVar(&iOSOptions.SystemGPU, "gpu", false, "get gpu data")
-	iOSCmd.Flags().BoolVar(&iOSOptions.SystemFPS, "fps", false, "get fps data")
-	iOSCmd.Flags().BoolVar(&iOSOptions.ProcCPU, "proc-cpu", false, "get process cpu data")
-	iOSCmd.Flags().BoolVar(&iOSOptions.ProcMem, "proc-mem", false, "get process mem data")
-	iOSCmd.Flags().IntVarP(&iOSOptions.RefreshTime, "refresh", "r", 1000, "data refresh time(millisecond)")
+	iOSCmd.Flags().IntVar(&port, "port", 8081, "service port")
+	iOSCmd.Flags().StringVarP(&iOpts.UDID, "udid", "u", "", "device's serialNumber ( default first device )")
+	iOSCmd.Flags().IntVarP(&iOpts.Pid, "pid", "p", -1, "get PID data")
+	iOSCmd.Flags().StringVarP(&iOpts.BundleID, "bundleId", "b", "", "target bundleId")
+	iOSCmd.Flags().BoolVar(&iOpts.SystemCPU, "sys-cpu", false, "get system cpu data")
+	iOSCmd.Flags().BoolVar(&iOpts.SystemMem, "sys-mem", false, "get system memory data")
+	iOSCmd.Flags().BoolVar(&iOpts.SystemDisk, "sys-disk", false, "get system disk data")
+	iOSCmd.Flags().BoolVar(&iOpts.SystemNetWorking, "sys-network", false, "get system networking data")
+	iOSCmd.Flags().BoolVar(&iOpts.SystemGPU, "gpu", false, "get gpu data")
+	iOSCmd.Flags().BoolVar(&iOpts.SystemFPS, "fps", false, "get fps data")
+	iOSCmd.Flags().BoolVar(&iOpts.ProcCPU, "proc-cpu", false, "get process cpu data")
+	iOSCmd.Flags().BoolVar(&iOpts.ProcMem, "proc-mem", false, "get process mem data")
+	iOSCmd.Flags().IntVarP(&iOpts.RefreshTime, "refresh", "r", 1000, "data refresh time(millisecond)")
 }

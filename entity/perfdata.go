@@ -14,3 +14,13 @@ type IOSProcData struct {
 	MemVirtualSize  *int     `json:"memVirtualSize"`
 	PhysFootprint   *int     `json:"physFootprint"`
 }
+
+type IOSDataChan struct {
+	SysChanCPU     chan giDevice.SystemCPUData
+	SysChanMem     chan giDevice.SystemMemData
+	SysChanDisk    chan giDevice.SystemDiskData
+	SysChanNetwork chan giDevice.SystemNetworkData
+	ChanFPS        chan giDevice.FPSData
+	ChanGPU        chan giDevice.GPUData
+	ProcChanProc   chan IOSProcPerf
+}
