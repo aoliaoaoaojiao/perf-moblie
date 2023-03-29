@@ -106,9 +106,6 @@ func getLineTemplate(title string) *charts.Line {
 			Show: true,
 			Top:  "5%",
 		}),
-		charts.WithInitializationOpts(opts.Initialization{
-			Theme: "shine",
-		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
 			Type:  "inside",
 			Start: 0,
