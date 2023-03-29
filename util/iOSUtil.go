@@ -30,15 +30,15 @@ func IOSInit(opts *entity.IOSOptions) (d giDevice.Device, perfData *entity.IOSDa
 		os.Exit(0)
 	}
 
-	if (opts.Pid == -1 || iOpts.BundleID == "") && !iOpts.SystemCPU && !iOpts.SystemMem && !iOpts.SystemDisk && !iOpts.SystemNetWorking && !iOpts.SystemGPU && !iOpts.SystemFPS {
-		sysAllParamsSet()
-	}
-
 	if (opts.Pid != -1 || iOpts.BundleID != "") && !iOpts.SystemCPU && !iOpts.SystemMem && !iOpts.SystemDisk && !iOpts.SystemNetWorking && !iOpts.SystemGPU && !iOpts.SystemFPS && !iOpts.ProcNetwork && !iOpts.ProcMem && !iOpts.ProcCPU {
 		sysAllParamsSet()
-		iOpts.ProcNetwork = true
+		// iOpts.ProcNetwork = true
 		iOpts.ProcMem = true
 		iOpts.ProcCPU = true
+	}
+
+	if (opts.Pid == -1 || iOpts.BundleID == "") && !iOpts.SystemCPU && !iOpts.SystemMem && !iOpts.SystemDisk && !iOpts.SystemNetWorking && !iOpts.SystemGPU && !iOpts.SystemFPS {
+		sysAllParamsSet()
 	}
 
 	if iOpts.ProcCPU {
@@ -85,12 +85,12 @@ func IOSInit(opts *entity.IOSOptions) (d giDevice.Device, perfData *entity.IOSDa
 		giDevice.WithPerfOutputInterval(iOpts.RefreshTime),
 	}
 
-	if opts.Pid != -1 {
-		perfOpts = append(perfOpts, giDevice.WithPerfPID(opts.Pid))
-		perfOpts = append(perfOpts, giDevice.WithPerfProcessAttributes(opts.ProcessAttributes...))
+	if iOpts.Pid != -1 {
+		perfOpts = append(perfOpts, giDevice.WithPerfPID(iOpts.Pid))
+		perfOpts = append(perfOpts, giDevice.WithPerfProcessAttributes(iOpts.ProcessAttributes...))
 	} else if iOpts.BundleID != "" {
 		perfOpts = append(perfOpts, giDevice.WithPerfBundleID(iOpts.BundleID))
-		perfOpts = append(perfOpts, giDevice.WithPerfProcessAttributes(opts.ProcessAttributes...))
+		perfOpts = append(perfOpts, giDevice.WithPerfProcessAttributes(iOpts.ProcessAttributes...))
 	}
 	return device, perfData, perfOpts
 }
@@ -183,14 +183,14 @@ func RegisterIOSChart(data <-chan []byte, iosChan *entity.IOSDataChan, page *com
 	if iOpts.ProcCPU {
 		line, eData := setChart(iOpts.RefreshTime, "proc cpu info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			conversionIOSProcCPU("sys proc cpu info", iosChan.ProcChanCpu, eData, c, exitCtx)
+			conversionIOSProcCPU("proc cpu info", iosChan.ProcChanCpu, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
 	if iOpts.ProcMem {
 		line, eData := setChart(iOpts.RefreshTime, "proc mem info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			conversionIOSProcMem("sys proc mem info", iosChan.ProcChanMem, eData, c, exitCtx)
+			conversionIOSProcMem("proc mem info", iosChan.ProcChanMem, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
