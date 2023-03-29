@@ -4,7 +4,7 @@ import giDevice "github.com/SonicCloudOrg/sonic-gidevice"
 
 type IOSProcPerf struct {
 	giDevice.PerfDataBase
-	IOSProcPerf IOSProcData `json:"proc_perf"`
+	IOSProcPerf *IOSProcData `json:"proc_perf"`
 }
 
 type IOSProcData struct {
@@ -22,5 +22,7 @@ type IOSDataChan struct {
 	SysChanNetwork chan giDevice.SystemNetworkData
 	ChanFPS        chan giDevice.FPSData
 	ChanGPU        chan giDevice.GPUData
-	ProcChanProc   chan IOSProcPerf
+	// ProcChanProc   chan IOSProcPerf
+	ProcChanMem chan IOSProcPerf
+	ProcChanCpu chan IOSProcPerf
 }

@@ -67,8 +67,11 @@ func IOSInit(opts *entity.IOSOptions) (d giDevice.Device, perfData *entity.IOSDa
 	if iOpts.SystemFPS {
 		perfData.ChanFPS = make(chan giDevice.FPSData)
 	}
-	if iOpts.ProcCPU || iOpts.ProcMem {
-		perfData.ProcChanProc = make(chan entity.IOSProcPerf)
+	if iOpts.ProcMem {
+		perfData.ProcChanMem = make(chan entity.IOSProcPerf)
+	}
+	if iOpts.ProcCPU {
+		perfData.ProcChanCpu = make(chan entity.IOSProcPerf)
 	}
 
 	perfOpts = []giDevice.PerfOption{
@@ -178,16 +181,16 @@ func RegisterIOSChart(data <-chan []byte, iosChan *entity.IOSDataChan, page *com
 		page.AddCharts(&line)
 	}
 	if iOpts.ProcCPU {
-		line, eData := setChart(iOpts.RefreshTime, "sys proc cpu info", iOpts.Addr)
+		line, eData := setChart(iOpts.RefreshTime, "proc cpu info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			conversionIOSProcCPU("sys proc cpu info", iosChan.ProcChanProc, eData, c, exitCtx)
+			conversionIOSProcCPU("sys proc cpu info", iosChan.ProcChanCpu, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
-	if iOpts.ProcCPU {
-		line, eData := setChart(iOpts.RefreshTime, "sys proc mem info", iOpts.Addr)
+	if iOpts.ProcMem {
+		line, eData := setChart(iOpts.RefreshTime, "proc mem info", iOpts.Addr)
 		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			conversionIOSProcMem("sys proc mem info", iosChan.ProcChanProc, eData, c, exitCtx)
+			conversionIOSProcMem("sys proc mem info", iosChan.ProcChanMem, eData, c, exitCtx)
 		})
 		page.AddCharts(&line)
 	}
@@ -249,7 +252,14 @@ func iOSDataSplit(dataByte []byte, iosChan *entity.IOSDataChan) {
 		if err != nil {
 			panic(err)
 		}
-		iosChan.ProcChanProc <- data
+		if data.IOSProcPerf != nil {
+			if iOpts.ProcCPU {
+				iosChan.ProcChanCpu <- data
+			}
+			if iOpts.ProcMem {
+				iosChan.ProcChanMem <- data
+			}
+		}
 	}
 }
 
