@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"perf-moblie/entity"
@@ -23,8 +22,9 @@ var iOSCmd = &cobra.Command{
 		iOpts.Addr = fmt.Sprintf("127.0.0.1:%d", port)
 		r := gin.New()
 		r.Use(util.Cors())
-		r.StaticFS("/statics", http.Dir("./statics"))
+		// r.StaticFS("/statics", http.Dir("./statics"))
 		//r.StaticFS("/statics", http.Dir("./statics"))
+
 		data, err := device.PerfStart(perfOpts...)
 
 		if err != nil {
@@ -40,7 +40,7 @@ var iOSCmd = &cobra.Command{
 			os.Exit(0)
 		}()
 		page := components.NewPage()
-		util.SetPageInit(iOpts.Addr, page)
+		util.SetPageInit(iOpts.Addr, page, r)
 		util.RegisterIOSChart(data, iOSChanPerf, page, r, exitCtx)
 		r.GET("/", func(c *gin.Context) {
 			page.Render(c.Writer)

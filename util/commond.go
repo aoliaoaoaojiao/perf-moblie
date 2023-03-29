@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"perf-moblie/entity"
+	"perf-moblie/statics"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -75,10 +76,16 @@ var upGrader = websocket.Upgrader{
 	},
 } // use default options
 
-func SetPageInit(addr string, page *components.Page) {
+func SetPageInit(addr string, page *components.Page, r *gin.Engine) {
 	templates.BaseTpl = BaseTpl
 	page.Initialization.AssetsHost = fmt.Sprintf("http://%s/statics/", addr)
 	page.JSAssets.Add("jquery.min.js")
+	r.GET("/statics/echarts.min.js", func(ctx *gin.Context) {
+		ctx.Writer.WriteString(statics.EchartJS)
+	})
+	r.GET("/statics/jquery.min.js", func(ctx *gin.Context) {
+		ctx.Writer.WriteString(statics.JqueryJS)
+	})
 }
 
 func setChart(refreshTime int, title, addr string) (charts.Line, *entity.EchartsData) {

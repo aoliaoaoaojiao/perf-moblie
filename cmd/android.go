@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"perf-moblie/entity"
@@ -23,7 +22,7 @@ var androidCmd = &cobra.Command{
 		aOpts.Addr = fmt.Sprintf("127.0.0.1:%d", port)
 		r := gin.New()
 		r.Use(util.Cors())
-		r.StaticFS("/statics", http.Dir("./statics"))
+		// r.StaticFS("/statics", http.Dir("./statics"))
 		//r.StaticFS("/statics", http.Dir("./statics"))
 		done := make(chan os.Signal, 1)
 		signal.Notify(done, os.Interrupt, os.Kill)
@@ -34,7 +33,7 @@ var androidCmd = &cobra.Command{
 			os.Exit(0)
 		}()
 		page := components.NewPage()
-		util.SetPageInit(aOpts.Addr, page)
+		util.SetPageInit(aOpts.Addr, page, r)
 		util.RegisterAndroidChart(&device, page, r, exitCtx)
 		r.GET("/", func(c *gin.Context) {
 			page.Render(c.Writer)

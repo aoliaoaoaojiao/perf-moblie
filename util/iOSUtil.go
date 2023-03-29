@@ -96,12 +96,10 @@ func GetDeviceByUdId(udId string) (device giDevice.Device) {
 	usbMuxClient, err := giDevice.NewUsbmux()
 	if err != nil {
 		panic(errors.New("unable to connect to usbmux"))
-		return nil
 	}
 	list, err1 := usbMuxClient.Devices()
 	if err1 != nil {
 		panic(errors.New("unable to get device list"))
-		return nil
 	}
 	if len(list) != 0 {
 		if len(udId) != 0 {
