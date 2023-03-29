@@ -12,11 +12,11 @@ perf-moblie android
 
 然后在浏览器中访问默认的http://127.0.0.1:8081，可以获取到默认的系统CPU、系统内存、系统网络数据使用情况：
 
-![](./doc/android/sys cpu info.png)
+![](https://github.com/aoliaoaoaojiao/perf-moblie/raw/master/doc/android/sys%20cpu%20info.png)
 
-![](./doc/android/sys mem info.png)
+![](https://github.com/aoliaoaoaojiao/perf-moblie/raw/master/doc/android/sys%20mem%20info.png)
 
-![](./doc/android/sys networking info.png)
+![](https://github.com/aoliaoaoaojiao/perf-moblie/raw/master/doc/android/sys%20networking%20info.png)
 
 通常来说，我们需求对安卓app进行性能的监控，以B站为例，我们可以使用以下的指令进行监控：
 
@@ -24,9 +24,9 @@ perf-moblie android
 perf-moblie android  -p tv.danmaku.bili -r 2000 --proc-cpu --proc-mem
 ```
 
-![](./doc/android/process cpu info.png)
+![](https://github.com/aoliaoaoaojiao/perf-moblie/raw/master/doc/android/process%20cpu%20info.png)
 
-![](./doc/android/process mem info.png)
+![](https://github.com/aoliaoaoaojiao/perf-moblie/raw/master/doc/android/process%20mem%20info.png)
 
 #### 可用参数
 
@@ -53,7 +53,7 @@ perf-moblie android  -p tv.danmaku.bili -r 2000 --proc-cpu --proc-mem
 perf-moblie ios
 ```
 
-然后在浏览器中访问默认的http://127.0.0.1:8081，可以获取到默认的系统CPU、系统内存、FPS、系统GPU使用情况
+然后在浏览器中访问默认的 (http://127.0.0.1:8081) ，可以获取到默认的系统CPU、系统内存、FPS、系统GPU使用情况
 
 如果需要对iOS应用进行性能测试，可以参考以下指令：
 
