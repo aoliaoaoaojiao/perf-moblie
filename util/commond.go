@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"net/http"
+	"perf-moblie/entity"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/templates"
 	"github.com/gorilla/websocket"
-	"html/template"
-	"net/http"
-	"perf-moblie/entity"
-	"time"
 )
 
 const (
@@ -80,9 +81,9 @@ func SetPageInit(addr string, page *components.Page) {
 	page.JSAssets.Add("jquery.min.js")
 }
 
-func setChart(title, addr string) (charts.Line, *entity.EchartsData) {
+func setChart(refreshTime int, title, addr string) (charts.Line, *entity.EchartsData) {
 	line := getLineTemplate(title)
-	line.AddJSFuncs(registerJs(aOpts.AndroidOptions.RefreshTime, line.ChartID, addr))
+	line.AddJSFuncs(registerJs(refreshTime, line.ChartID, addr))
 	eData := &entity.EchartsData{
 		XAxis:  []string{},
 		Series: map[string][]opts.LineData{},

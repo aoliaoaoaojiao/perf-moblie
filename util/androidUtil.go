@@ -3,6 +3,11 @@ package util
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"perf-moblie/entity"
+	"time"
+
 	"github.com/SonicCloudOrg/sonic-android-supply/src/adb"
 	sentity "github.com/SonicCloudOrg/sonic-android-supply/src/entity"
 	sasp "github.com/SonicCloudOrg/sonic-android-supply/src/perfmonUtil"
@@ -12,10 +17,6 @@ import (
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/gorilla/websocket"
-	"log"
-	"os"
-	"perf-moblie/entity"
-	"time"
 )
 
 var aOpts *entity.AndroidOptions
@@ -187,7 +188,7 @@ func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engi
 
 func setAndroid(title, addr string) (charts.Line, *entity.EchartsData, chan *sentity.PerfmonData) {
 	dataChan := make(chan *sentity.PerfmonData)
-	line, eData := setChart(title, addr)
+	line, eData := setChart(aOpts.AndroidOptions.RefreshTime, title, addr)
 	return line, eData, dataChan
 }
 

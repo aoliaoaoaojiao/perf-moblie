@@ -3,14 +3,15 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/go-echarts/go-echarts/v2/components"
-	"github.com/spf13/cobra"
 	"net/http"
 	"os"
 	"os/signal"
 	"perf-moblie/entity"
 	"perf-moblie/util"
+
+	"github.com/gin-gonic/gin"
+	"github.com/go-echarts/go-echarts/v2/components"
+	"github.com/spf13/cobra"
 )
 
 var androidCmd = &cobra.Command{
@@ -20,7 +21,7 @@ var androidCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		device := util.AndroidInit(&aOpts)
 		aOpts.Addr = fmt.Sprintf("127.0.0.1:%d", port)
-		r := gin.Default()
+		r := gin.New()
 		r.Use(util.Cors())
 		r.StaticFS("/statics", http.Dir("./statics"))
 		//r.StaticFS("/statics", http.Dir("./statics"))
