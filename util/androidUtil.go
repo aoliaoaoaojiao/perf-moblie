@@ -23,6 +23,7 @@ var aOpts *entity.AndroidOptions
 
 func AndroidInit(opt *entity.AndroidOptions) (d adb.Device) {
 	aOpts = opt
+	sasp.IntervalTime = float64(aOpts.AndroidOptions.RefreshTime) / 1000
 	var err error
 	device := sasutil.GetDevice(aOpts.AndroidSerial)
 
@@ -66,65 +67,6 @@ func androidParamsSet() {
 	aOpts.AndroidOptions.SystemMem = true
 	aOpts.AndroidOptions.SystemGPU = true
 	aOpts.AndroidOptions.SystemNetWorking = true
-}
-
-func RegisterAndroidRoute(device *adb.Device, page *components.Page, r *gin.Engine, exitCtx context.Context) {
-	if aOpts.AndroidOptions.SystemCPU {
-		line, eData, dataChan := setAndroid("sys cpu info", aOpts.Addr+"/android/sys/cpu")
-		r.GET("/android/sys/cpu", func(c *gin.Context) {
-			sasp.GetSystemCPU(device, aOpts.AndroidOptions, dataChan, exitCtx)
-			androidSysCPU("sys cpu info", dataChan, eData, c, exitCtx)
-		})
-		page.AddCharts(&line)
-	}
-	if aOpts.AndroidOptions.SystemMem {
-		line, eData, dataChan := setAndroid("sys mem info", aOpts.Addr)
-		sasp.GetSystemMem(device, aOpts.AndroidOptions, dataChan, exitCtx)
-		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			androidSysMem("sys mem info", dataChan, eData, c, exitCtx)
-		})
-		page.AddCharts(&line)
-	}
-	if aOpts.AndroidOptions.SystemNetWorking {
-		line, eData, dataChan := setAndroid("sys networking info", aOpts.Addr)
-		sasp.GetSystemNetwork(device, aOpts.AndroidOptions, dataChan, exitCtx)
-		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			androidSysNetwork("sys networking info", dataChan, eData, c, exitCtx)
-		})
-		page.AddCharts(&line)
-	}
-	if aOpts.AndroidOptions.ProcCPU {
-		line, eData, dataChan := setAndroid("process cpu info", aOpts.Addr)
-		sasp.GetProcCpu(device, aOpts.AndroidOptions, dataChan, exitCtx)
-		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			androidProcCPU("process cpu info", dataChan, eData, c, exitCtx)
-		})
-		page.AddCharts(&line)
-	}
-	if aOpts.AndroidOptions.ProcMem {
-		line, eData, dataChan := setAndroid("process mem info", aOpts.Addr)
-		sasp.GetProcMem(device, aOpts.AndroidOptions, dataChan, exitCtx)
-		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			androidProcMem("process mem info", dataChan, eData, c, exitCtx)
-		})
-		page.AddCharts(&line)
-	}
-	if aOpts.AndroidOptions.ProcFPS {
-		line, eData, dataChan := setAndroid("process FPS info", aOpts.Addr)
-		sasp.GetProcFPS(device, aOpts.AndroidOptions, dataChan, exitCtx)
-		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			androidProcFPS("process FPS info", dataChan, eData, c, exitCtx)
-		})
-		page.AddCharts(&line)
-	}
-	if aOpts.AndroidOptions.ProcThreads {
-		line, eData, dataChan := setAndroid("process Thread info", aOpts.Addr)
-		sasp.GetProcThreads(device, aOpts.AndroidOptions, dataChan, exitCtx)
-		r.GET("/"+line.ChartID, func(c *gin.Context) {
-			androidProcThreads("process Thread info", dataChan, eData, c, exitCtx)
-		})
-		page.AddCharts(&line)
-	}
 }
 
 func RegisterAndroidChart(device *adb.Device, page *components.Page, r *gin.Engine, exitCtx context.Context) {
@@ -442,15 +384,7 @@ func androidProcMem(title string, dataChan chan *sentity.PerfmonData, eData *ent
 				if eData.Series["pss"] == nil {
 					eData.Series["pss"] = []opts.LineData{}
 				}
-				if eData.Series["vss"] == nil {
-					eData.Series["vss"] = []opts.LineData{}
-				}
-				if eData.Series["rss"] == nil {
-					eData.Series["rss"] = []opts.LineData{}
-				}
 				eData.Series["pss"] = append(eData.Series["pss"], opts.LineData{Value: data.Process.MemInfo.TotalPSS})
-				eData.Series["vss"] = append(eData.Series["vss"], opts.LineData{Value: data.Process.MemInfo.VmSize})
-				eData.Series["rss"] = append(eData.Series["rss"], opts.LineData{Value: data.Process.MemInfo.PhyRSS})
 			}
 			for key, value := range eData.Series {
 				line = line.SetXAxis(eData.XAxis).AddSeries(key, value)

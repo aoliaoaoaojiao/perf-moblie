@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -184,42 +183,3 @@ const (
 	// pingPeriod is the interval between pings sent to client. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
 )
-
-func reader(ws *websocket.Conn) {
-	defer ws.Close()
-	ws.SetReadLimit(512)
-	ws.SetReadDeadline(time.Now().Add(pongWait))
-	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-	for {
-		_, _, err := ws.ReadMessage()
-		if err != nil {
-			break
-		}
-	}
-}
-
-func writer(ws *websocket.Conn, dataC <-chan interface{}) {
-	var pingTicker = time.NewTicker(pingPeriod)
-	defer func() {
-		pingTicker.Stop()
-		ws.Close()
-	}()
-	for {
-		select {
-		case changes := <-dataC:
-			bytes, err := json.Marshal(changes)
-			if err != nil {
-				panic(fmt.Sprintf("unexpected err while marshalling changes: %v", changes))
-			}
-			ws.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := ws.WriteMessage(websocket.TextMessage, bytes); err != nil {
-				return
-			}
-		case <-pingTicker.C:
-			ws.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := ws.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-				return
-			}
-		}
-	}
-}

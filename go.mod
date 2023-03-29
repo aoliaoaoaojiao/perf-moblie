@@ -3,7 +3,7 @@ module perf-moblie
 go 1.18
 
 require (
-	github.com/SonicCloudOrg/sonic-android-supply v0.1.7
+	github.com/SonicCloudOrg/sonic-android-supply v0.1.8
 	github.com/SonicCloudOrg/sonic-gidevice v0.7.3
 	github.com/SonicCloudOrg/sonic-ios-bridge v1.3.9
 	github.com/gin-gonic/gin v1.9.0
