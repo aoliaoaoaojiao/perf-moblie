@@ -10,7 +10,7 @@
 perf-moblie android
 ```
 
-然后在浏览器中访问默认的http://127.0.0.1:8081，可以获取到默认的系统CPU、系统内存、系统网络数据使用情况：
+然后在浏览器中访问默认的 (http://127.0.0.1:8081) ，可以获取到默认的系统CPU、系统内存、系统网络数据使用情况：
 
 ![](https://github.com/aoliaoaoaojiao/perf-moblie/raw/master/doc/android/sys%20cpu%20info.png)
 
