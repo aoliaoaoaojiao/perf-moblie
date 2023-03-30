@@ -33,7 +33,7 @@ perf-moblie android  -p tv.danmaku.bili -r 2000 --proc-cpu --proc-mem
 | 快捷使用 | 选项名           | 参数类型 | 描述信息                     |
 | -------- | ---------------- | -------- | ---------------------------- |
 | -h       | --help           |          | 获取帮助指南                 |
-| -p       | --package string | string   | 应用包名                     |
+| -p       | --package | string   | 应用包名                     |
 | -d       | --pid            | int      | 应用PID (默认 -1)            |
 |          | --port           | int      | 服务端口 (默认端口 8081)     |
 |          | --proc-cpu       |          | 获取进程cpu数据              |
