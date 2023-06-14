@@ -1,9 +1,9 @@
 github.com/SonicCloudOrg/sonic-android-supply v0.1.8 h1:bCtRB6zPG4ahN17dycCovN/MXHM/L1nGEr2HJ43AM+0=
 github.com/SonicCloudOrg/sonic-android-supply v0.1.8/go.mod h1:z3hMi7WZO3GmH7i0YeND5geTRRDlFudHhlrwyM9jnag=
-github.com/SonicCloudOrg/sonic-gidevice v0.7.3 h1:1+p2vE+mr79ZOhhtSnQDls1bYk5o8mWlfgEI1IiU7w4=
-github.com/SonicCloudOrg/sonic-gidevice v0.7.3/go.mod h1:sww8Tk3iZ/FMhCJtZT+gQgWg7F4u5M2858OARwjC3Yc=
-github.com/SonicCloudOrg/sonic-ios-bridge v1.3.9 h1:cu9506bq8AFvtui9FYpXC45Nnw//ZihG72eOy20pt0w=
-github.com/SonicCloudOrg/sonic-ios-bridge v1.3.9/go.mod h1:HBjNmDsgznNaGKq+EaocyL4TI448R5MyGuzS5OZKjmQ=
+github.com/SonicCloudOrg/sonic-gidevice v0.7.4 h1:Yt9lCzZdziQr4efBWV+fUWakqvxqb/ksT9T6LULrHDY=
+github.com/SonicCloudOrg/sonic-gidevice v0.7.4/go.mod h1:sww8Tk3iZ/FMhCJtZT+gQgWg7F4u5M2858OARwjC3Yc=
+github.com/SonicCloudOrg/sonic-ios-bridge v1.3.13 h1:zFR0n+Wn7c8FTYzaLupXlVyioQ2bcSsPKwEu1FSt6Fg=
+github.com/SonicCloudOrg/sonic-ios-bridge v1.3.13/go.mod h1:fy14PRbtI+zdxieyeuMmPK6mQYO1mWKhH4Zn7jrwYq8=
 github.com/bytedance/sonic v1.5.0/go.mod h1:ED5hyg4y6t3/9Ku1R6dU/4KyJ48DZ4jPhfY1O2AihPM=
 github.com/bytedance/sonic v1.8.0 h1:ea0Xadu+sHlu7x5O3gKhRpQ1IKiMrSiHttPF0ybECuA=
 github.com/bytedance/sonic v1.8.0/go.mod h1:i736AoUSYt75HyZLoJW9ERYxcy6eaN6h4BZXU064P/U=

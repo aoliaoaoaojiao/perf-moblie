@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	github.com/SonicCloudOrg/sonic-android-supply v0.1.8
-	github.com/SonicCloudOrg/sonic-gidevice v0.7.3
-	github.com/SonicCloudOrg/sonic-ios-bridge v1.3.9
+	github.com/SonicCloudOrg/sonic-gidevice v0.7.4
+	github.com/SonicCloudOrg/sonic-ios-bridge v1.3.13
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-echarts/go-echarts/v2 v2.2.5
 	github.com/gorilla/websocket v1.5.0
