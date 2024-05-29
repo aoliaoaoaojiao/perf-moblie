@@ -1,3 +1,4 @@
+# 本仓库停止维护，安卓相关的性能可以查看 https://github.com/omsage/fionna ，已经解决游戏方面无法拿到FPS的痛点，iOS请使用sib
 # perf-moblie
 
 基于sonic性能数据采集，对Android或者iOS设备的性能数据以图表形式展示。
